@@ -1,15 +1,17 @@
-let me={};
+let me = {};
 
 function show(id){
- document.querySelectorAll('.panel')
-  .forEach(p=>p.style.display='none');
- const el=document.getElementById(id);
- if(el) el.style.display='block';
+ document.querySelectorAll(".panel")
+   .forEach(p=>p.style.display="none");
+
+ const el = document.getElementById(id);
+ if(el) el.style.display="block";
 }
 
-/* LOGIN */
+/* -------- LOGIN -------- */
 async function login(){
- const r=await fetch("/tracker/login",{
+
+ const r = await fetch("/tracker/login",{
   method:"POST",
   headers:{"Content-Type":"application/json"},
   body:JSON.stringify({
@@ -18,11 +20,12 @@ async function login(){
   })
  });
 
- email.value=""; pass.value="";
+ email.value="";
+ pass.value="";
 
  if(!r.ok) return alert("invalid login");
 
- me=await r.json();
+ me = await r.json();
 
  loginBox.style.display="none";
 
@@ -32,32 +35,22 @@ async function login(){
  }else{
   userBox.style.display="block";
   show("dsa");
-  loadDSA(); loadCourse(); loadGym(); loadReplies();
+
+  loadDSA();
+  loadCourse();
+  loadGym();
+  loadReplies();
  }
 }
 
-/* REGISTER */
-async function register(){
- await fetch("/tracker/register",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({
-   email:rEmail.value,
-   password:rPass.value
-  })
- });
-
- rEmail.value=""; rPass.value="";
- alert("account created");
-}
-
-/* DSA */
+/* -------- DSA -------- */
 async function loadDSA(){
- const r=await fetch("/tracker/dsa/"+me.email);
- const d=await r.json();
 
- total.innerText="Total: "+
-  d.reduce((s,x)=>s+Number(x.count),0);
+ const r = await fetch("/tracker/dsa/"+me.email);
+ const d = await r.json();
+
+ total.innerText =
+  "Total: "+d.reduce((s,x)=>s+Number(x.count),0);
 
  new Chart(dsaCanvas,{
   type:"line",
@@ -72,10 +65,11 @@ async function loadDSA(){
  });
 }
 
-/* COURSE */
+/* -------- COURSE -------- */
 async function loadCourse(){
- const r=await fetch("/tracker/course/"+me.email);
- const d=await r.json();
+
+ const r = await fetch("/tracker/course/"+me.email);
+ const d = await r.json();
 
  new Chart(courseCanvas,{
   type:"bar",
@@ -90,12 +84,13 @@ async function loadCourse(){
  });
 }
 
-/* GYM */
+/* -------- GYM -------- */
 async function loadGym(){
- const r=await fetch("/tracker/gym/"+me.email);
- const d=await r.json();
 
- gymStreak.innerText=
+ const r = await fetch("/tracker/gym/"+me.email);
+ const d = await r.json();
+
+ gymStreak.innerText =
   "Days: "+d.filter(x=>x.went).length;
 
  new Chart(gymCanvas,{
@@ -112,24 +107,28 @@ async function loadGym(){
  });
 }
 
-/* FEEDBACK */
+/* -------- FEEDBACK -------- */
 async function loadReplies(){
- const r=await fetch("/tracker/fb/"+me.email);
- const d=await r.json();
 
- replies.innerHTML=d.map(x=>
-  `<div class='card'>
-     ${x.message}<br>
-     <small>${x.reply||''}</small>
-   </div>`
- ).join("");
+ const r = await fetch("/tracker/fb/"+me.email);
+ const d = await r.json();
+
+ replies.innerHTML = d.map(x=>`
+  <div class="card">
+   ${x.message}<br>
+   <small>${x.reply||""}</small>
+  </div>
+ `).join("");
 }
 
-/* ADMIN */
+/* -------- ADMIN -------- */
 async function loadAdminUsers(){
- const r=await fetch("/tracker/admin/users");
- const d=await r.json();
 
- uSelect.innerHTML=
-  d.map(u=>`<option>${u.username}</option>`).join("");
+ const r = await fetch("/tracker/admin/users");
+ const d = await r.json();
+
+ uSelect.innerHTML =
+  d.map(u=>`<option value="${u.username}">
+     ${u.username}
+   </option>`).join("");
 }

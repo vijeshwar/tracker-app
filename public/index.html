@@ -2,33 +2,22 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-
-<link rel="manifest" href="/manifest.json">
-<script>
-if('serviceWorker' in navigator)
- navigator.serviceWorker.register('/sw.js');
-</script>
-
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
-<div class="header">Growth Tracker</div>
+<h2>Tracker</h2>
 
-<div id="loginBox" class="card">
+<div id="loginBox">
  <input id="email" placeholder="username">
- <input id="pass" type="password">
+ <input id="pass" type="password" placeholder="password">
  <button onclick="login()">Login</button>
-
- <h4>Register</h4>
- <input id="rEmail">
- <input id="rPass" type="password">
- <button onclick="register()">Create</button>
 </div>
 
 <div id="userBox" style="display:none">
+
  <div id="dsa" class="panel">
   <p id="total"></p>
   <canvas id="dsaCanvas"></canvas>
@@ -46,6 +35,7 @@ if('serviceWorker' in navigator)
  <div id="feed" class="panel">
   <div id="replies"></div>
  </div>
+
 </div>
 
 <div id="adminBox" style="display:none">
