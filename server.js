@@ -9,13 +9,31 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static("public"));
 
-const db = await mysql.createConnection({
- host: process.env.DB_HOST,
- user: process.env.DB_USER,
- password: process.env.DB_PASS,
- database: process.env.DB_NAME,
- port: process.env.DB_PORT
+console.log({
+  HOST: process.env.DB_HOST,
+  PORT: process.env.DB_PORT,
+  DB: process.env.DB_NAME
 });
+
+import mysql from "mysql2/promise";
+
+const db = await mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  port: Number(process.env.DB_PORT),
+
+  // 🔥 IMPORTANT for Railway
+  ssl: {
+    rejectUnauthorized: false
+  },
+
+  connectTimeout: 20000
+});
+
+console.log("✅ Connected to Railway DB");
+
 
 // ---- 24H CHECK ----
 async function allow(user, table){
