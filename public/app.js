@@ -7,9 +7,8 @@ function show(id){
  if(el) el.style.display='block';
 }
 
-// -------- LOGIN --------
+/* LOGIN */
 async function login(){
-
  const r=await fetch("/tracker/login",{
   method:"POST",
   headers:{"Content-Type":"application/json"},
@@ -37,10 +36,9 @@ async function login(){
  }
 }
 
-// -------- REGISTER --------
+/* REGISTER */
 async function register(){
-
- const r=await fetch("/tracker/register",{
+ await fetch("/tracker/register",{
   method:"POST",
   headers:{"Content-Type":"application/json"},
   body:JSON.stringify({
@@ -53,35 +51,13 @@ async function register(){
  alert("account created");
 }
 
-// -------- DSA --------
-async function addDSA(){
-
- const r=await fetch("/tracker/add/dsa",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({
-   user:me.email,
-   topic:dTopic.value,
-   count:dCount.value,
-   lc:dLc.value
-  })
- });
-
- if(!r.ok)
-  return alert("You already logged today. Come after 24 hours!");
-
- dTopic.value=dCount.value=dLc.value="";
- loadDSA();
-}
-
+/* DSA */
 async function loadDSA(){
-
  const r=await fetch("/tracker/dsa/"+me.email);
  const d=await r.json();
 
- if(d.length===0){
-  total.innerText="First entry unlocked! Start now 💪";
- }
+ total.innerText="Total: "+
+  d.reduce((s,x)=>s+Number(x.count),0);
 
  new Chart(dsaCanvas,{
   type:"line",
@@ -96,30 +72,8 @@ async function loadDSA(){
  });
 }
 
-// -------- COURSE --------
-async function addCourse(){
-
- const r=await fetch("/tracker/add/course",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({
-   user:me.email,
-   site:cSite.value,
-   name:cName.value,
-   mod:cMod.value,
-   time:cTime.value
-  })
- });
-
- if(!r.ok)
-  return alert("You already logged today. Come after 24 hours!");
-
- cSite.value=cName.value=cMod.value=cTime.value="";
- loadCourse();
-}
-
+/* COURSE */
 async function loadCourse(){
-
  const r=await fetch("/tracker/course/"+me.email);
  const d=await r.json();
 
@@ -136,32 +90,12 @@ async function loadCourse(){
  });
 }
 
-// -------- GYM --------
-async function addGym(){
-
- const r=await fetch("/tracker/add/gym",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({
-   user:me.email,
-   went:gWent.checked,
-   time:gTime.value
-  })
- });
-
- if(!r.ok)
-  return alert("You already logged today. Come after 24 hours!");
-
- gWent.checked=false; gTime.value="";
- loadGym();
-}
-
+/* GYM */
 async function loadGym(){
-
  const r=await fetch("/tracker/gym/"+me.email);
  const d=await r.json();
 
- gymStreak.innerText =
+ gymStreak.innerText=
   "Days: "+d.filter(x=>x.went).length;
 
  new Chart(gymCanvas,{
@@ -178,53 +112,24 @@ async function loadGym(){
  });
 }
 
-// -------- FEEDBACK --------
-async function sendFb(){
-
- await fetch("/tracker/fb",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({
-   user:me.email,
-   msg:fmsg.value
-  })
- });
-
- fmsg.value="";
- loadReplies();
-}
-
+/* FEEDBACK */
 async function loadReplies(){
-
  const r=await fetch("/tracker/fb/"+me.email);
  const d=await r.json();
 
  replies.innerHTML=d.map(x=>
   `<div class='card'>
-    ${x.message}<br>
-    <small>${x.reply||''}</small>
+     ${x.message}<br>
+     <small>${x.reply||''}</small>
    </div>`
  ).join("");
 }
 
-// -------- ADMIN --------
+/* ADMIN */
 async function loadAdminUsers(){
-
  const r=await fetch("/tracker/admin/users");
  const d=await r.json();
 
- uSelect.innerHTML=d.map(u=>
-  `<option>${u.username}</option>`
- ).join("");
-}
-
-async function loadAnalytics(){
-
- const r=await fetch("/tracker/admin/all");
- const d=await r.json();
-
- analytics.innerHTML=`
- <div class='card'>Users: ${d.users}</div>
- <div class='card'>DSA: ${d.dsa}</div>
- <div class='card'>Gym: ${d.gym}</div>`;
+ uSelect.innerHTML=
+  d.map(u=>`<option>${u.username}</option>`).join("");
 }

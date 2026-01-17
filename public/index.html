@@ -1,127 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="manifest" href="manifest.json">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<link rel="manifest" href="/manifest.json">
 <script>
- if('serviceWorker' in navigator){
-   navigator.serviceWorker.register('/sw.js');
- }
+if('serviceWorker' in navigator)
+ navigator.serviceWorker.register('/sw.js');
 </script>
 
-<title>Tracker</title>
 <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body onload="forceClear()">
+<body>
 
-<h2>Growth Tracker</h2>
+<div class="header">Growth Tracker</div>
 
-<!-- LOGIN + REGISTER -->
-<div class="card" id="loginBox">
+<div id="loginBox" class="card">
+ <input id="email" placeholder="username">
+ <input id="pass" type="password">
+ <button onclick="login()">Login</button>
 
-  <h3>Login</h3>
-  <input id="email" placeholder="username" autocomplete="off">
-  <input id="pass" type="password" placeholder="password" autocomplete="new-password">
-  <button onclick="login()">Login</button>
-
-  <h3>Register</h3>
-  <input id="rEmail" placeholder="new username" autocomplete="off">
-  <input id="rPass" type="password" placeholder="new password" autocomplete="new-password">
-  <button onclick="register()">Register</button>
-
+ <h4>Register</h4>
+ <input id="rEmail">
+ <input id="rPass" type="password">
+ <button onclick="register()">Create</button>
 </div>
 
-<!-- USER AREA -->
 <div id="userBox" style="display:none">
-
-<div class="tabs">
- <button onclick="show('dsa')">DSA</button>
- <button onclick="show('course')">Course</button>
- <button onclick="show('gym')">Gym</button>
- <button onclick="show('feedback')">Feedback</button>
- <button onclick="show('heat')">Heatmap</button>
-</div>
-
-<!-- DSA -->
-<div id="dsa" class="panel">
- <div class="card">
-  <input id="dTopic" placeholder="topic">
-  <input id="dCount" placeholder="problems">
-  <input id="dLc" placeholder="leetcode ids">
-  <button onclick="addDSA()">Save DSA</button>
- </div>
-
- <div class="card">
+ <div id="dsa" class="panel">
   <p id="total"></p>
   <canvas id="dsaCanvas"></canvas>
  </div>
-</div>
 
-<!-- COURSE -->
-<div id="course" class="panel">
- <div class="card">
-  <input id="cSite" placeholder="website">
-  <input id="cName" placeholder="course name">
-  <input id="cMod" placeholder="modules">
-  <input id="cTime" placeholder="minutes">
-  <button onclick="addCourse()">Save Course</button>
- </div>
-
- <div class="card">
-  <p id="courseTotal"></p>
+ <div id="course" class="panel">
   <canvas id="courseCanvas"></canvas>
  </div>
-</div>
 
-<!-- GYM -->
-<div id="gym" class="panel">
- <div class="card">
-  <label>
-   <input type="checkbox" id="gWent"> Went to gym?
-  </label>
-
-  <input id="gTime" placeholder="minutes">
-  <button onclick="addGym()">Save Gym</button>
-
+ <div id="gym" class="panel">
   <p id="gymStreak"></p>
   <canvas id="gymCanvas"></canvas>
  </div>
-</div>
 
-<!-- FEEDBACK -->
-<div id="feedback" class="panel">
- <div class="card">
-  <textarea id="msg" placeholder="write feedback"></textarea>
-  <button onclick="sendFeedback()">Send</button>
-
-  <h4>Your Replies</h4>
-  <div id="myReplies"></div>
+ <div id="feed" class="panel">
+  <div id="replies"></div>
  </div>
 </div>
 
-<!-- HEATMAP -->
-<div id="heat" class="panel">
- <div class="card" id="heatmap"></div>
-</div>
-
-</div>
-
-<!-- ADMIN -->
 <div id="adminBox" style="display:none">
- <div class="card">
-  <h3>Admin Dashboard</h3>
-
-  <select id="uSelect" onchange="loadAdminUser()"></select>
-
-  <div id="adminView"></div>
-
-  <canvas id="adminDsaCanvas"></canvas>
-  <canvas id="adminGymCanvas"></canvas>
- </div>
+ <select id="uSelect"></select>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="app.js"></script>
-
 </body>
 </html>
