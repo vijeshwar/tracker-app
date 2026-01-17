@@ -15,7 +15,7 @@ console.log({
   DB: process.env.DB_NAME
 });
 
-import mysql from "mysql2/promise";
+
 
 const db = await mysql.createConnection({
   host: process.env.DB_HOST,
