@@ -1,6 +1,5 @@
 import express from "express";
 import mysql from "mysql2/promise";
-import moment from "moment";
 import bcrypt from "bcrypt";
 import cors from "cors";
 
@@ -9,205 +8,199 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static("public"));
 
-console.log({
-  HOST: process.env.DB_HOST,
-  PORT: process.env.DB_PORT,
-  DB: process.env.DB_NAME
-});
-
-
-
+// -------- DATABASE CONNECTION --------
 const db = await mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-  port: Number(process.env.DB_PORT),
-
-  // 🔥 IMPORTANT for Railway
-  ssl: {
-    rejectUnauthorized: false
-  },
-
-  connectTimeout: 20000
+ host: process.env.DB_HOST,
+ user: process.env.DB_USER,
+ password: process.env.DB_PASS,
+ database: process.env.DB_NAME,
+ port: Number(process.env.DB_PORT),
+ ssl:{ rejectUnauthorized:false }
 });
 
-console.log("✅ Connected to Railway DB");
-
-
-// ---- 24H CHECK ----
-async function allow(user, table){
- const today = moment().format("YYYY-MM-DD");
-
- const [r] = await db.execute(
-  `SELECT * FROM ${table}
-   WHERE username=? AND date=?`,
-  [user,today]
- );
-
- return r.length===0;
-}
-
-// ---- AUTH ----
-app.post("/tracker/login", async (req,res)=>{
+// -------- HELPER: 24 HOUR RULE --------
+async function canAdd(table, user){
 
  const [rows] = await db.execute(
-  "SELECT * FROM users WHERE LOWER(username)=?",
-  [req.body.email.toLowerCase()]
+  `SELECT date FROM ${table}
+   WHERE username=?
+   ORDER BY id DESC LIMIT 1`,
+  [user]
  );
 
- if(!rows[0]) return res.status(400).json({});
+ // ✅ allow if no previous records
+ if(rows.length === 0) return true;
 
- const ok = await bcrypt.compare(
-  req.body.password,
-  rows[0].password
- );
+ const last = new Date(rows[0].date);
+ const now  = new Date();
 
- if(!ok) return res.status(400).json({});
+ const diff = (now - last) / (1000*60*60);
+ return diff >= 24;
+}
 
- res.json({email:rows[0].username, role:rows[0].role});
-});
-
+// -------- AUTH --------
 app.post("/tracker/register", async (req,res)=>{
 
- const hash = await bcrypt.hash(req.body.password,10);
+ const {email,password} = req.body;
+
+ const hash = await bcrypt.hash(password,10);
 
  await db.execute(
-  "INSERT INTO users(username,password,role) VALUES(?,?,?)",
-  [req.body.email,hash,"user"]
+  "INSERT INTO users VALUES (null,?,?,?)",
+  [email,hash,"user"]
  );
 
- res.json({});
+ res.send("ok");
 });
 
-// ---- MODULES ----
+app.post("/tracker/login", async (req,res)=>{
+
+ const {email,password} = req.body;
+
+ const [u] = await db.execute(
+  "SELECT * FROM users WHERE username=?",
+  [email]
+ );
+
+ if(u.length===0) return res.status(400).send();
+
+ const ok = await bcrypt.compare(
+  password,u[0].password
+ );
+
+ if(!ok) return res.status(400).send();
+
+ res.json({
+  email:u[0].username,
+  role:u[0].role
+ });
+});
+
+// -------- DSA --------
 app.post("/tracker/add/dsa", async (req,res)=>{
- if(!await allow(req.body.user,"logs"))
-  return res.status(400).json({});
+
+ const {user,topic,count,lc} = req.body;
+
+ if(!await canAdd("logs",user))
+   return res.status(400).send("wait");
 
  await db.execute(
-  "INSERT INTO logs(username,date,topic,count,leetcode) VALUES(?,?,?,?,?)",
-  [req.body.user,moment().format("YYYY-MM-DD"),
-   req.body.topic,req.body.count,req.body.lc]
+  "INSERT INTO logs VALUES (null,?,?,?,?,?)",
+  [user,new Date(),topic,count,lc]
  );
 
- res.json({});
+ res.send("ok");
 });
 
-app.post("/tracker/add/course", async (req,res)=>{
- if(!await allow(req.body.user,"course_logs"))
-  return res.status(400).json({});
+app.get("/tracker/dsa/:u", async (req,res)=>{
 
- await db.execute(
-  "INSERT INTO course_logs(username,date,website,course,modules,minutes) VALUES(?,?,?,?,?,?)",
-  [req.body.user,moment().format("YYYY-MM-DD"),
-   req.body.site,req.body.name,req.body.mod,req.body.time]
- );
-
- res.json({});
-});
-
-app.post("/tracker/add/gym", async (req,res)=>{
- if(!await allow(req.body.user,"gym_logs"))
-  return res.status(400).json({});
-
- await db.execute(
-  "INSERT INTO gym_logs(username,date,went,minutes) VALUES(?,?,?,?)",
-  [req.body.user,moment().format("YYYY-MM-DD"),
-   req.body.went?1:0,req.body.time]
- );
-
- res.json({});
-});
-
-app.post("/tracker/feedback", async (req,res)=>{
- if(!await allow(req.body.user,"feedback"))
-  return res.status(400).json({});
-
- await db.execute(
-  "INSERT INTO feedback(username,message,date) VALUES(?,?,?)",
-  [req.body.user,req.body.msg,
-   moment().format("YYYY-MM-DD")]
- );
-
- res.json({});
-});
-
-// ---- READ ----
-app.get("/tracker/my/:user", async (req,res)=>{
  const [r] = await db.execute(
   "SELECT * FROM logs WHERE username=?",
-  [req.params.user]
+  [req.params.u]
  );
+
  res.json(r);
 });
 
-app.get("/tracker/my/course/:user", async (req,res)=>{
+// -------- COURSE --------
+app.post("/tracker/add/course", async (req,res)=>{
+
+ const {user,site,name,mod,time} = req.body;
+
+ if(!await canAdd("course_logs",user))
+   return res.status(400).send("wait");
+
+ await db.execute(
+  "INSERT INTO course_logs VALUES (null,?,?,?,?,?,?)",
+  [user,new Date(),site,name,mod,time]
+ );
+
+ res.send("ok");
+});
+
+app.get("/tracker/course/:u", async (req,res)=>{
+
  const [r] = await db.execute(
   "SELECT * FROM course_logs WHERE username=?",
-  [req.params.user]
+  [req.params.u]
  );
+
  res.json(r);
 });
 
-app.get("/tracker/my/gym/:user", async (req,res)=>{
+// -------- GYM --------
+app.post("/tracker/add/gym", async (req,res)=>{
+
+ const {user,went,time} = req.body;
+
+ if(!await canAdd("gym_logs",user))
+   return res.status(400).send("wait");
+
+ await db.execute(
+  "INSERT INTO gym_logs VALUES (null,?,?,?,?)",
+  [user,new Date(),went,time]
+ );
+
+ res.send("ok");
+});
+
+app.get("/tracker/gym/:u", async (req,res)=>{
+
  const [r] = await db.execute(
   "SELECT * FROM gym_logs WHERE username=?",
-  [req.params.user]
+  [req.params.u]
  );
+
  res.json(r);
 });
 
-app.get("/tracker/my/feedback/:user", async (req,res)=>{
+// -------- FEEDBACK --------
+app.post("/tracker/fb", async (req,res)=>{
+
+ const {user,msg} = req.body;
+
+ await db.execute(
+  "INSERT INTO feedback VALUES (null,?,?,?,?)",
+  [user,msg,"",new Date()]
+ );
+
+ res.send("ok");
+});
+
+app.get("/tracker/fb/:u", async (req,res)=>{
+
  const [r] = await db.execute(
   "SELECT * FROM feedback WHERE username=?",
-  [req.params.user]
+  [req.params.u]
+ );
+
+ res.json(r);
+});
+
+// -------- ADMIN --------
+app.get("/tracker/admin/users", async (req,res)=>{
+ const [r] = await db.execute(
+  "SELECT username FROM users"
  );
  res.json(r);
 });
 
-// ---- HEATMAP ----
-app.get("/tracker/heat/:user", async (req,res)=>{
+app.get("/tracker/admin/all", async (req,res)=>{
 
- const [dsa] = await db.execute(
-  "SELECT date FROM logs WHERE username=?",
-  [req.params.user]
- );
+ const [[u]] = await db.execute(
+  "select count(*) c from users");
 
- const [gym] = await db.execute(
-  "SELECT date FROM gym_logs WHERE username=? AND went=1",
-  [req.params.user]
- );
+ const [[d]] = await db.execute(
+  "select sum(count) c from logs");
 
- const all=[...dsa,...gym].map(x=>x.date);
- const map={};
+ const [[g]] = await db.execute(
+  "select count(*) c from gym_logs where went=1");
 
- all.forEach(d=>map[d]=(map[d]||0)+1);
-
- res.json(map);
+ res.json({
+  users:u.c,
+  dsa:d.c||0,
+  gym:g.c||0
+ });
 });
 
-// ---- ADMIN ----
-app.get("/tracker/admin/users", async (req,res)=>{
- const [r] = await db.execute("SELECT username FROM users");
- res.json(r.map(x=>x.username));
-});
-
-app.get("/tracker/admin/user/:u", async (req,res)=>{
-
- const [dsa] = await db.execute(
-  "SELECT * FROM logs WHERE username=?",[req.params.u]);
-
- const [gym] = await db.execute(
-  "SELECT * FROM gym_logs WHERE username=?",[req.params.u]);
-
- const [course] = await db.execute(
-  "SELECT * FROM course_logs WHERE username=?",[req.params.u]);
-
- const [fb] = await db.execute(
-  "SELECT * FROM feedback WHERE username=?",[req.params.u]);
-
- res.json({dsa,gym,course,fb});
-});
-
-app.listen(3000,()=>console.log("running 3000"));
+app.listen(3000,()=>console.log("running"));
